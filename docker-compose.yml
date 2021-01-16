@@ -1,0 +1,80 @@
+version: '3.4'
+
+networks:
+  infra_network:
+    driver: bridge
+
+services:
+  mongo:
+    image: mongo:latest    
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+      MONGO_INIT_DATABASE: infra
+    volumes:
+      - ./mongo-volume:/data/db
+    ports:
+      - 27017:27017
+    networks:
+      - infra_network
+  redis:
+    image: redis:latest
+    expose:
+      - "6379"
+    ports:
+      - "6379:6379"
+    networks:
+      - infra_network
+
+
+  infra.api:
+    image: ${DOCKER_REGISTRY-}infraapi
+    build:
+      context: .
+      dockerfile: Infra.API/Dockerfile
+    ports:
+      - 5200:443
+      - 5201:80
+    networks:
+      - infra_network
+    depends_on: 
+      - mongo
+    restart: always
+
+    ########################################
+    ###############TOOLS####################
+    ########################################
+    
+    # Mongo Express: tool to manage our Mongo database
+    #https://hub.docker.com/_/mongo-express
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - "8011:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_PORT: 27017
+      #set credentials to access mongo express
+      #ME_CONFIG_BASICAUTH_USERNAME: admin
+      #ME_CONFIG_BASICAUTH_PASSWORD: admin
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: 'true'      
+    networks:
+      - infra_network
+    depends_on:
+      - mongo
+
+ # Redis Commander: tool to manage our Redis container from localhost
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=redis
+    ports:
+      - "8013:8081"
+    networks:
+      - infra_network
+    depends_on:
+      - redis
