@@ -1,22 +1,13 @@
 using Infra.MongoDB;
-using Infra.MongoDB.Context;
 using Infra.MongoDB.Interfaces;
-using Infra.MongoDB.Repositories;
-using Infra.MongoDB.UnitOfWork;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Infra.API
 {
@@ -32,9 +23,7 @@ namespace Infra.API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.Configure<MongoDbSettings>(Configuration.GetSection("MongoDbSettings"));
-            services.AddSingleton<IMongoDbSettings>(serviceProvider =>
-                serviceProvider.GetRequiredService<IOptions<MongoDbSettings>>().Value);
+            
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
@@ -66,9 +55,16 @@ namespace Infra.API
         }
         private void RegisterServices(IServiceCollection services)
         {
-            services.AddScoped<IMongoContext, MongoContext>();
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
-            services.AddScoped<IProductRepository, ProductRepository>();
+            services.Configure<MongoDbSettings>(Configuration.GetSection("MongoDbSettings"));
+            services.AddSingleton<IMongoDbSettings>(serviceProvider =>
+                serviceProvider.GetRequiredService<IOptions<MongoDbSettings>>().Value);
+            services.AddScoped(typeof(IRepository<>), typeof(MongoRepository<>));
+
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = Configuration.GetValue<string>("Redis:ConnectionString");
+                options.InstanceName = Configuration.GetValue<string>("Redis:InstanceName");
+            });
         }
     }
 }

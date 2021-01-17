@@ -2,7 +2,7 @@
 {
     public class ProductViewModel
     {
-        public string Description { get; set; }
-        public bool ShouldCommit { get; set; } = true;
+        public string Name { get; set; }
+        public string Description { get; set; } 
     }
 }
